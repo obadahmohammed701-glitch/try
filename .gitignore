@@ -1,0 +1,21 @@
+# Data files — restaurant's private data, never upload
+*.xlsx
+*.xls
+*.csv
+
+# Generated model files — too large, regenerated each run
+*.pkl
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+.venv/
+venv/
+
+# OS files
+.DS_Store
+Thumbs.db

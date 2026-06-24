@@ -1,0 +1,11 @@
+streamlit
+streamlit-authenticator
+pandas
+numpy
+lightgbm
+scikit-learn
+joblib
+bcrypt
+thefuzz
+pyyaml
+openpyxl
