@@ -33,7 +33,11 @@ credentials = {
         "zanjabeel": {
             "name": "مطعم زنجبيل",
             "password": "$2b$12$JADj/4A/WZX0iUA0Gubqzu6fA2cfk7ptZlcqaArFZoSO.diy0HuRO"
-        }
+        },
+        "ali": {
+            "name": "طعمية",
+            "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
+        },
     }
 }
 
@@ -340,7 +344,7 @@ cache_key  = hashlib.md5(b"".join(files_bytes)).hexdigest()
 # ============================================================
 # RUN PIPELINE
 # ============================================================
-with st.spinner("⏳ جاري تحليل البيانات وتدريب النموذج... (30-60 ثانية)"):
+with st.spinner("⏳ جاري تحليل البيانات وتدريب النموذج... قد يستغرق الأمر بضع ثوانٍ"):
     results_df, error = run_full_pipeline(cache_key, files_bytes, filenames)
 
 if error:
