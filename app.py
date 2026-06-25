@@ -24,6 +24,19 @@ st.set_page_config(
 # ============================================================
 # LOGIN
 # ============================================================
+
+
+# Initialize lockout state
+if "failed_attempts" not in st.session_state:
+    st.session_state.failed_attempts = 0
+if "locked_out" not in st.session_state:
+    st.session_state.locked_out = False
+
+# Block immediately if locked out
+if st.session_state.locked_out:
+    st.error("🔒 تم تعطيل الحساب بعد 5 محاولات فاشلة. أغلق المتصفح وحاول لاحقاً.")
+    st.stop()
+
 credentials = {
     "usernames": {
         "admin": {
@@ -38,14 +51,8 @@ credentials = {
             "name": "طعمية",
             "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
         },
-        "ahmad": {
-            "name": "ahmad",
-            "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
-        },
-        "mohmmad": {
-            "name": "فلافل",
-            "password": "$2b$12$jMWJtBYt8zHueKND5VSREO/oMDSQiegq3zTTAXW4x8uhKnMrZ2c4y"
-        }
+       
+        
     }
 }
 
@@ -64,23 +71,16 @@ authenticator.login(location="main", fields={
 auth_status = st.session_state.get("authentication_status")
 name = st.session_state.get("name")
 
-# --- 5-attempt lockout ---
-if "failed_attempts" not in st.session_state:
-    st.session_state.failed_attempts = 0
-if "locked_out" not in st.session_state:
-    st.session_state.locked_out = False
-
 if auth_status is False:
-    if not st.session_state.locked_out:
-        st.session_state.failed_attempts += 1
-        remaining = 5 - st.session_state.failed_attempts
-        if st.session_state.failed_attempts >= 5:
-            st.session_state.locked_out = True
-        else:
-            st.error(f"❌ اسم المستخدم أو كلمة المرور غير صحيحة — تبقّى لك {remaining} محاولة")
-    if st.session_state.locked_out:
-        st.error("🔒 تم تعطيل الحساب مؤقتاً بعد 5 محاولات فاشلة. أغلق المتصفح وحاول لاحقاً.")
+    st.session_state.failed_attempts += 1
+    remaining = 5 - st.session_state.failed_attempts
+    if st.session_state.failed_attempts >= 5:
+        st.session_state.locked_out = True
+        st.error("🔒 تم تعطيل الحساب بعد 5 محاولات فاشلة. أغلق المتصفح وحاول لاحقاً.")
+    else:
+        st.error(f"❌ اسم المستخدم أو كلمة المرور غير صحيحة — تبقّى لك {remaining} محاولة")
     st.stop()
+
 elif auth_status is None:
     st.markdown("""
     <div style="text-align:center;padding:60px 20px;">
@@ -91,6 +91,7 @@ elif auth_status is None:
     """, unsafe_allow_html=True)
     st.stop()
 
+# Successful login — reset counter
 st.session_state.failed_attempts = 0
 st.session_state.locked_out = False
 authenticator.logout("🚪 خروج", location="sidebar")
