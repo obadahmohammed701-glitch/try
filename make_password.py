@@ -1,15 +1,25 @@
-# make_password.py
-# Run: python make_password.py
+# make_password.py — Run this to generate a hashed password for a new customer
+# Usage: python make_password.py
 
-import streamlit_authenticator as stauth
+import bcrypt
 
-# Put your passwords here
-passwords = ["admin1234", "cafe2025", "shop2025"]
+print("=" * 50)
+print("  مولّد كلمة المرور — زنجبيل")
+print("=" * 50)
 
-print("\n=== كلمات المرور المشفرة ===\n")
+username  = input("\nاسم المستخدم (بالإنجليزي، بدون مسافات): ").strip()
+shop_name = input("اسم المطعم (بالعربي): ").strip()
+password  = input("كلمة المرور: ").strip()
 
-for pw in passwords:
-    hashed = stauth.Hasher.hash(pw)
-    print(f"الأصلية : {pw}")
-    print(f"المشفرة : {hashed}")
-    print()
+hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+print("\n" + "=" * 50)
+print("✅ انسخ هذا الكود وأضفه في app.py داخل credentials:")
+print("=" * 50)
+print(f'''
+        "{username}": {{
+            "name": "{shop_name}",
+            "password": "{hashed}"
+        }},
+''')
+print("=" * 50)
