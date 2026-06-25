@@ -1,6 +1,5 @@
 # app.py — Zanjabeel Forecast System (Cloud Ready)
 # Full pipeline embedded: load → clean → aggregate → pad → feature engineer → train → predict
-# No external script calls. Owner uploads Excel files → system trains and forecasts automatically.
 
 import io
 import hashlib
@@ -22,21 +21,25 @@ st.set_page_config(
 )
 
 # ============================================================
-# LOGIN
+# LOCKOUT — must come FIRST before anything else
 # ============================================================
-
-
-# Initialize lockout state
 if "failed_attempts" not in st.session_state:
     st.session_state.failed_attempts = 0
 if "locked_out" not in st.session_state:
     st.session_state.locked_out = False
 
-# Block immediately if locked out
 if st.session_state.locked_out:
     st.error("🔒 تم تعطيل الحساب بعد 5 محاولات فاشلة. أغلق المتصفح وحاول لاحقاً.")
     st.stop()
 
+# ============================================================
+# CREDENTIALS
+# ============================================================
+# TO ADD A NEW CUSTOMER:
+#   1. Run: python make_password.py
+#   2. Copy the printed block and paste it below
+#   3. git add app.py && git commit -m "add user" && git push
+# ============================================================
 credentials = {
     "usernames": {
         "admin": {
@@ -51,11 +54,17 @@ credentials = {
             "name": "طعمية",
             "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
         },
-       
-        
+        "ahmad": {
+            "name": "ahmad",
+            "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
+        }
+        # ← PASTE NEW CUSTOMERS HERE (don't forget the comma on the line above)
     }
 }
 
+# ============================================================
+# LOGIN
+# ============================================================
 authenticator = stauth.Authenticate(
     credentials, "zanjabeel_cookie", "zanjabeel_key_2025",
     cookie_expiry_days=7
@@ -69,7 +78,7 @@ authenticator.login(location="main", fields={
 })
 
 auth_status = st.session_state.get("authentication_status")
-name = st.session_state.get("name")
+name        = st.session_state.get("name")
 
 if auth_status is False:
     st.session_state.failed_attempts += 1
@@ -91,9 +100,9 @@ elif auth_status is None:
     """, unsafe_allow_html=True)
     st.stop()
 
-# Successful login — reset counter
+# ---- Successful login ----
 st.session_state.failed_attempts = 0
-st.session_state.locked_out = False
+st.session_state.locked_out      = False
 authenticator.logout("🚪 خروج", location="sidebar")
 st.sidebar.success(f"👋 أهلاً، {name}")
 
@@ -135,7 +144,6 @@ def is_noise_item(name: str) -> bool:
 
 
 def step1_load(uploaded_files_bytes, filenames):
-    """Read uploaded Excel bytes and combine into one DataFrame."""
     dfs = []
     for file_bytes, fname in zip(uploaded_files_bytes, filenames):
         try:
@@ -152,7 +160,6 @@ def step1_load(uploaded_files_bytes, filenames):
 
 
 def step2_parse_datetime(df):
-    """Parse Arabic datetime column (ص/م → AM/PM)."""
     date_col = "تاريخ الفاتورة"
     if date_col not in df.columns:
         raise KeyError(f"العمود '{date_col}' غير موجود. الأعمدة المتاحة: {list(df.columns)}")
@@ -173,41 +180,32 @@ def step2_parse_datetime(df):
 
 
 def step3_aggregate(df):
-    """Daily aggregation → remove modifiers → remove zero/negative qty."""
     item_col = "اسم الصنف"
     qty_col  = "الكمية"
     for col in [item_col, qty_col]:
         if col not in df.columns:
             raise KeyError(f"العمود '{col}' غير موجود في البيانات")
-
     df = df.copy()
     df[qty_col] = pd.to_numeric(df[qty_col], errors="coerce").fillna(0)
-
     agg = (
         df.groupby(["Sales_Date", item_col])[qty_col]
         .sum()
         .reset_index()
         .rename(columns={item_col: "Item_Name", qty_col: "Daily_Qty"})
     )
-    # Clean leading special chars
     agg["Item_Name"] = agg["Item_Name"].astype(str).str.lstrip("=+\t ")
-    # Remove modifier/noise items
     agg = agg[~agg["Item_Name"].apply(is_noise_item)].reset_index(drop=True)
-    # Remove zero/negative quantity rows
     agg = agg[agg["Daily_Qty"] > 0].reset_index(drop=True)
     return agg
 
 
 def step35_fuzzy_standardize(df, threshold=0.85):
-    """TF-IDF fuzzy name deduplication for Arabic item names."""
     unique_names = df["Item_Name"].unique().tolist()
     if len(unique_names) < 2:
         return df
-
-    vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 3))
+    vectorizer   = TfidfVectorizer(analyzer='char', ngram_range=(2, 3))
     tfidf_matrix = vectorizer.fit_transform(unique_names)
-    sim_matrix = cosine_similarity(tfidf_matrix)
-
+    sim_matrix   = cosine_similarity(tfidf_matrix)
     name_mapping = {}
     for i, name_i in enumerate(unique_names):
         if name_i in name_mapping:
@@ -218,18 +216,12 @@ def step35_fuzzy_standardize(df, threshold=0.85):
                 variant = unique_names[j]
                 if variant not in name_mapping:
                     name_mapping[variant] = name_i
-
     df["Item_Name"] = df["Item_Name"].replace(name_mapping)
-    df = (
-        df.groupby(["Sales_Date", "Item_Name"])["Daily_Qty"]
-        .sum()
-        .reset_index()
-    )
+    df = df.groupby(["Sales_Date", "Item_Name"])["Daily_Qty"].sum().reset_index()
     return df
 
 
 def step4_zero_pad(df):
-    """Fill missing date-item combinations with 0."""
     full_dates   = pd.date_range(df["Sales_Date"].min(), df["Sales_Date"].max(), freq="D")
     unique_items = df["Item_Name"].unique()
     grid = pd.MultiIndex.from_product(
@@ -246,7 +238,6 @@ def step4_zero_pad(df):
 
 
 def step5_feature_engineer(df):
-    """Add calendar, lag, and rolling features."""
     df = df.sort_values(["Item_Name", "Sales_Date"]).reset_index(drop=True)
     df["Day_Of_Week"]      = df["Sales_Date"].dt.dayofweek
     df["Month"]            = df["Sales_Date"].dt.month
@@ -255,9 +246,9 @@ def step5_feature_engineer(df):
     df["Is_Salary_Period"] = (
         (df["Day_Of_Month"] >= 22) | (df["Day_Of_Month"] <= 2)
     ).astype(int)
-    df["Lag_1"]            = df.groupby("Item_Name")["Daily_Qty"].shift(1)
-    df["Lag_7"]            = df.groupby("Item_Name")["Daily_Qty"].shift(7)
-    df["Rolling_Mean_7"]   = (
+    df["Lag_1"]          = df.groupby("Item_Name")["Daily_Qty"].shift(1)
+    df["Lag_7"]          = df.groupby("Item_Name")["Daily_Qty"].shift(7)
+    df["Rolling_Mean_7"] = (
         df.groupby("Item_Name")["Daily_Qty"]
         .transform(lambda x: x.shift(1).rolling(7).mean())
     )
@@ -266,44 +257,32 @@ def step5_feature_engineer(df):
 
 
 def step6_train_predict(df):
-    """Dual LightGBM training (High-Volume / Low-Volume) with buffer stock."""
-    item_volumes     = df.groupby("Item_Name")["Daily_Qty"].mean()
-    high_vol_items   = item_volumes[item_volumes >= VOLUME_THRESHOLD].index.tolist()
-    low_vol_items    = [i for i in item_volumes.index if i not in high_vol_items]
+    item_volumes   = df.groupby("Item_Name")["Daily_Qty"].mean()
+    high_vol_items = item_volumes[item_volumes >= VOLUME_THRESHOLD].index.tolist()
+    low_vol_items  = [i for i in item_volumes.index if i not in high_vol_items]
 
     cutoff = df["Sales_Date"].max() - pd.Timedelta(days=14)
     train  = df[df["Sales_Date"] <= cutoff]
     test   = df[df["Sales_Date"] >  cutoff]
 
     if len(test) == 0:
-        raise ValueError(
-            "البيانات غير كافية للتنبؤ — يجب أن تحتوي على أكثر من 14 يوماً من المبيعات"
-        )
+        raise ValueError("البيانات غير كافية للتنبؤ — يجب أن تحتوي على أكثر من 14 يوماً من المبيعات")
 
     all_preds = []
-
     for category, item_list in [("High-Volume", high_vol_items), ("Low-Volume", low_vol_items)]:
         tr = train[train["Item_Name"].isin(item_list)]
         te = test[test["Item_Name"].isin(item_list)]
         if len(tr) == 0 or len(te) == 0:
             continue
-
         X_tr = tr[FEATURES + ["Item_Name"]].copy()
         X_te = te[FEATURES + ["Item_Name"]].copy()
         y_tr = tr["Daily_Qty"]
-
         X_tr["Item_Name"] = X_tr["Item_Name"].astype("category")
         X_te["Item_Name"] = X_te["Item_Name"].astype("category")
-
-        model = lgb.LGBMRegressor(
-            n_estimators=100, learning_rate=0.05,
-            random_state=42, verbose=-1
-        )
+        model = lgb.LGBMRegressor(n_estimators=100, learning_rate=0.05, random_state=42, verbose=-1)
         model.fit(X_tr, y_tr)
-
         preds  = np.clip(model.predict(X_te), 0, None)
         buffer = 0.15 if category == "High-Volume" else 0.30
-
         meta = te[["Sales_Date", "Item_Name", "Daily_Qty"]].copy()
         meta["Model_Prediction"]  = np.round(preds, 1)
         meta["Recommended_Stock"] = np.ceil(preds * (1 + buffer)).astype(int)
@@ -313,20 +292,14 @@ def step6_train_predict(df):
     if not all_preds:
         raise ValueError("لم يتمكن النموذج من التدريب — تحقق من البيانات")
 
-    results = pd.concat(all_preds).sort_values(["Sales_Date", "Item_Name"])
-    return results
+    return pd.concat(all_preds).sort_values(["Sales_Date", "Item_Name"])
 
 
 # ============================================================
-# MAIN CACHED PIPELINE ENTRY POINT
+# CACHED PIPELINE ENTRY POINT
 # ============================================================
-
 @st.cache_data(show_spinner=False)
 def run_full_pipeline(cache_key: str, files_bytes: list, filenames: list):
-    """
-    cache_key: MD5 hash of all file contents — ensures rerun only when files change.
-    Returns (results_df, error_message).
-    """
     try:
         raw      = step1_load(files_bytes, filenames)
         parsed   = step2_parse_datetime(raw)
@@ -355,21 +328,19 @@ if not uploaded_files:
     st.info("👆 ارفع ملفات بيانات المبيعات لبدء التنبؤ")
     st.stop()
 
-# ============================================================
-# READ FILES — seek(0) prevents empty-bytes bug on Streamlit Cloud
-# ============================================================
+# seek(0) prevents empty-bytes bug on Streamlit Cloud
 files_bytes = []
 for f in uploaded_files:
     f.seek(0)
     files_bytes.append(f.read())
 
-filenames  = [f.name for f in uploaded_files]
-cache_key  = hashlib.md5(b"".join(files_bytes)).hexdigest()
+filenames = [f.name for f in uploaded_files]
+cache_key = hashlib.md5(b"".join(files_bytes)).hexdigest()
 
 # ============================================================
 # RUN PIPELINE
 # ============================================================
-with st.spinner("⏳ جاري تحليل البيانات وتدريب النموذج... قد يستغرق الأمر بضع ثوانٍ"):
+with st.spinner("⏳ جاري تحليل البيانات وتدريب النموذج..."):
     results_df, error = run_full_pipeline(cache_key, files_bytes, filenames)
 
 if error:
@@ -435,8 +406,17 @@ display_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock", "Ca
     "Category":          "الفئة"
 }).reset_index(drop=True)
 
-st.dataframe(
-    display_df,
-    use_container_width=True,
-    height=500
+st.dataframe(display_df, use_container_width=True, height=500)
+
+# ============================================================
+# DOWNLOAD
+# ============================================================
+csv_out = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].to_csv(
+    index=False, encoding="utf-8-sig"
+)
+st.download_button(
+    "📥 تحميل التوقعات CSV",
+    data=csv_out,
+    file_name=f"forecast_{pd.Timestamp(selected_date).strftime('%Y-%m-%d')}.csv",
+    mime="text/csv"
 )
