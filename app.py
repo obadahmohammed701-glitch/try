@@ -412,15 +412,4 @@ display_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock", "Ca
 
 st.dataframe(display_df, use_container_width=True, height=500)
 
-# ============================================================
-# DOWNLOAD
-# ============================================================
-csv_out = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].to_csv(
-    index=False, encoding="utf-8-sig"
-)
-st.download_button(
-    "📥 تحميل التوقعات CSV",
-    data=csv_out,
-    file_name=f"forecast_{pd.Timestamp(selected_date).strftime('%Y-%m-%d')}.csv",
-    mime="text/csv"
-)
+
