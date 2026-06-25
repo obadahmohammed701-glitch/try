@@ -38,6 +38,14 @@ credentials = {
             "name": "طعمية",
             "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
         },
+        "ahmad": {
+            "name": "ahmad",
+            "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
+        },
+        "mohmmad": {
+            "name": "فلافل",
+            "password": "$2b$12$jMWJtBYt8zHueKND5VSREO/oMDSQiegq3zTTAXW4x8uhKnMrZ2c4y"
+        }
     }
 }
 
