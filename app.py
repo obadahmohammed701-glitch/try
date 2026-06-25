@@ -399,30 +399,15 @@ if search:
 
 filtered = filtered.sort_values("Model_Prediction", ascending=False).reset_index(drop=True)
 
-st.dataframe(
-    filtered[["Item_Name", "Model_Prediction", "Recommended_Stock", "Category"]].rename(columns={
-        "Item_Name":         "اسم الصنف",
-        "Model_Prediction":  "الكمية المتوقعة",
-        "Recommended_Stock": "الكمية الموصى بتحضيرها",
-        "Category":          "الفئة"
-    }),
-    use_container_width=True,
-    height=500
-)
-
-# ============================================================
-# DOWNLOAD
-# ============================================================
-# AFTER (fixed code)
-csv_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].rename(columns={
+display_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock", "Category"]].rename(columns={
     "Item_Name":         "اسم الصنف",
     "Model_Prediction":  "الكمية المتوقعة",
     "Recommended_Stock": "الكمية الموصى بتحضيرها",
-})
-csv_out = csv_df.to_csv(index=False, encoding="utf-8-sig")
-#st.download_button(
- #   "📥 تحميل التوقعات CSV",
-  #  data=csv_out,
-   # file_name=f"forecast_{pd.Timestamp(selected_date).strftime('%Y-%m-%d')}.csv",
-    #mime="text/csv"
-#)
+    "Category":          "الفئة"
+}).reset_index(drop=True)
+
+st.dataframe(
+    display_df,
+    use_container_width=True,
+    height=500
+)
