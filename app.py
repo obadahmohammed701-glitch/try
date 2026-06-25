@@ -420,9 +420,9 @@ csv_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].rename
     "Recommended_Stock": "الكمية الموصى بتحضيرها",
 })
 csv_out = csv_df.to_csv(index=False, encoding="utf-8-sig")
-st.download_button(
-    "📥 تحميل التوقعات CSV",
-    data=csv_out,
-    file_name=f"forecast_{pd.Timestamp(selected_date).strftime('%Y-%m-%d')}.csv",
-    mime="text/csv"
-)
+#st.download_button(
+ #   "📥 تحميل التوقعات CSV",
+  #  data=csv_out,
+   # file_name=f"forecast_{pd.Timestamp(selected_date).strftime('%Y-%m-%d')}.csv",
+    #mime="text/csv"
+#)
