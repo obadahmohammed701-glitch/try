@@ -52,16 +52,16 @@ credentials = {
         },
         "ali": {
             "name": "طعمية",
-            "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
+            "password": "$2b$12$LeIKwX7T0WIgt1K8I/jM2Oxc.LsVrBUgfh2ysqN8K6PESQ6fY8EpW"
         },
         "ahmad": {
             "name": "ahmad",
             "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
         },
         "obada": {
-            "name": "بيتزا",
-            "password": "$2b$12$Ec5MwRyaoL8FMqcATjy4YuKOT64T/osekfe9L5IXxk3NtrLvI5foi"
-        },
+            "name": "عبادة",
+            "password": "$2b$12$vcL.3fboXgWwJfTg4aoXRO.idpbG7VfKmw28BtmERWelo/YqujQ4S"
+        }
         # ← PASTE NEW CUSTOMERS HERE (don't forget the comma on the line above)
     }
 }
