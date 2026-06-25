@@ -413,9 +413,13 @@ st.dataframe(
 # ============================================================
 # DOWNLOAD
 # ============================================================
-csv_out = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].to_csv(
-    index=False, encoding="utf-8-sig"
-)
+# AFTER (fixed code)
+csv_df = filtered[["Item_Name", "Model_Prediction", "Recommended_Stock"]].rename(columns={
+    "Item_Name":         "اسم الصنف",
+    "Model_Prediction":  "الكمية المتوقعة",
+    "Recommended_Stock": "الكمية الموصى بتحضيرها",
+})
+csv_out = csv_df.to_csv(index=False, encoding="utf-8-sig")
 st.download_button(
     "📥 تحميل التوقعات CSV",
     data=csv_out,
