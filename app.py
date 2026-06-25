@@ -57,7 +57,11 @@ credentials = {
         "ahmad": {
             "name": "ahmad",
             "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
-        }
+        },
+        "obada": {
+            "name": "بيتزا",
+            "password": "$2b$12$Ec5MwRyaoL8FMqcATjy4YuKOT64T/osekfe9L5IXxk3NtrLvI5foi"
+        },
         # ← PASTE NEW CUSTOMERS HERE (don't forget the comma on the line above)
     }
 }
