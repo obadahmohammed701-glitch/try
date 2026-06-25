@@ -38,10 +38,6 @@ credentials = {
             "name": "طعمية",
             "password": "$2b$12$dj9syQWtlH/BPyEsz0WG4O/gUFZLGsx87db6oEO1A9SrX9nSMzP96"
         },
-        "ahmad": {
-            "name": "ahmad",
-            "password": "$2b$12$1Yj5KOT19KZFm5T19t8daOklOqyeb.11cpkdGr5yB1fcGSrYSNff."
-        }
     }
 }
 
@@ -60,8 +56,22 @@ authenticator.login(location="main", fields={
 auth_status = st.session_state.get("authentication_status")
 name = st.session_state.get("name")
 
+# --- 5-attempt lockout ---
+if "failed_attempts" not in st.session_state:
+    st.session_state.failed_attempts = 0
+if "locked_out" not in st.session_state:
+    st.session_state.locked_out = False
+
 if auth_status is False:
-    st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+    if not st.session_state.locked_out:
+        st.session_state.failed_attempts += 1
+        remaining = 5 - st.session_state.failed_attempts
+        if st.session_state.failed_attempts >= 5:
+            st.session_state.locked_out = True
+        else:
+            st.error(f"❌ اسم المستخدم أو كلمة المرور غير صحيحة — تبقّى لك {remaining} محاولة")
+    if st.session_state.locked_out:
+        st.error("🔒 تم تعطيل الحساب مؤقتاً بعد 5 محاولات فاشلة. أغلق المتصفح وحاول لاحقاً.")
     st.stop()
 elif auth_status is None:
     st.markdown("""
@@ -73,6 +83,8 @@ elif auth_status is None:
     """, unsafe_allow_html=True)
     st.stop()
 
+st.session_state.failed_attempts = 0
+st.session_state.locked_out = False
 authenticator.logout("🚪 خروج", location="sidebar")
 st.sidebar.success(f"👋 أهلاً، {name}")
 
